@@ -1,0 +1,1003 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AssignmentX Number Game Challenge</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/tone@14.7.58/build/Tone.js"></script>
+    <style>
+        /* CSS Variables - MATHLY Theme */
+        :root {
+            --mathly-grey-dark: #2c3e50;
+            --mathly-grey-light: #ecf0f1;
+            --mathly-blue: #3498db;
+            --mathly-green: #2ecc71;
+            --mathly-red: #e74c3c;
+            --mathly-yellow: #f1c40f;
+            --card-bg-light: rgba(255, 255, 255, 0.85);
+            --card-bg-dark: rgba(44, 62, 80, 0.95);
+            --text-color: var(--mathly-grey-dark);
+            --glass-border: 1px solid rgba(255, 255, 255, 0.3);
+            --shadow-light: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Base & Theme Application */
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #7f8c8d, #34495e); /* Blue/Grey Gradient */
+            color: var(--text-color);
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start; /* Align to the top for better mobile view */
+            min-height: 100vh;
+            overflow-y: auto;
+            position: relative;
+            font-size: 16px; /* Base for responsiveness */
+        }
+
+        /* Mathly Symbols Background */
+        .mathly-bg-symbols {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            z-index: -1;
+            opacity: 0.1;
+        }
+
+        .mathly-bg-symbols::before {
+            content: '∑ ∫ ∞ ÷ × + - = ≠ < > ≅ ℕ ℤ';
+            position: absolute;
+            white-space: pre-wrap;
+            font-size: 20vw;
+            line-height: 0.8;
+            color: var(--mathly-red);
+            top: 5%;
+            left: 5%;
+            transform: rotate(-10deg);
+        }
+
+        .mathly-bg-symbols::after {
+            content: 'π δ γ θ α β ρ φ λ';
+            position: absolute;
+            white-space: pre-wrap;
+            font-size: 15vw;
+            line-height: 0.8;
+            color: var(--mathly-blue);
+            bottom: 10%;
+            right: 15%;
+            transform: rotate(20deg);
+        }
+
+        /* Main Container */
+        .game-container {
+            width: 95%; /* Mobile-First Width */
+            max-width: 500px; /* Max width for desktop/tablet */
+            margin: 20px auto;
+            padding: 20px 10px;
+            background: var(--card-bg-light);
+            border-radius: 15px;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2), inset 0 0 10px rgba(255, 255, 255, 0.5);
+            backdrop-filter: blur(5px);
+            -webkit-backdrop-filter: blur(5px);
+            border: var(--glass-border);
+            text-align: center;
+        }
+
+        /* Header */
+        header h1 {
+            color: var(--mathly-grey-dark);
+            font-size: 1.8em;
+            margin: 0 0 5px 0;
+        }
+
+        header p {
+            font-size: 1.1em;
+            font-weight: 600;
+            color: var(--mathly-blue);
+            margin: 0 0 15px 0;
+        }
+
+        /* Stats/Score */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background-color: var(--mathly-grey-light);
+            padding: 10px 5px;
+            border-radius: 8px;
+            font-size: 0.9em;
+            box-shadow: var(--shadow-light);
+            transition: transform 0.2s;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+        }
+
+        .stat-value {
+            font-weight: 800;
+            font-size: 1.4em;
+            display: block;
+            margin-top: 5px;
+        }
+        
+        #timerDisplay { color: var(--mathly-red); }
+        #scoreDisplay { color: var(--mathly-green); }
+        #correctCountDisplay { color: var(--mathly-blue); }
+
+
+        /* Game Area */
+        .game-area {
+            background-color: var(--card-bg-dark);
+            color: var(--mathly-grey-light);
+            padding: 20px 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            min-height: 120px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.3);
+        }
+
+        #problemText {
+            font-size: 1.4em;
+            font-weight: 600;
+            margin-bottom: 15px;
+            min-height: 1.5em;
+        }
+
+        #answerInput {
+            width: 80%;
+            padding: 10px;
+            border: none;
+            border-radius: 5px;
+            font-size: 1.2em;
+            text-align: center;
+            margin: 0 auto;
+            color: var(--mathly-grey-dark);
+        }
+
+        /* Controls */
+        .controls-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .controls-row {
+            display: flex;
+            justify-content: space-around;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        
+        .controls-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .btn {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s, transform 0.2s;
+            flex-grow: 1;
+            font-size: 0.9em;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+        
+        .btn.full-width {
+            width: 100%;
+        }
+
+        .btn-start { background-color: var(--mathly-green); color: white; }
+        .btn-start:hover { background-color: #27ae60; transform: translateY(-1px); }
+
+        .btn-submit { background-color: var(--mathly-blue); color: white; }
+        .btn-submit:hover { background-color: #2980b9; transform: translateY(-1px); }
+
+        .btn-pause { background-color: var(--mathly-yellow); color: var(--mathly-grey-dark); }
+        .btn-pause:hover { background-color: #f39c12; transform: translateY(-1px); }
+
+        .btn-stop { background-color: var(--mathly-red); color: white; }
+        .btn-stop:hover { background-color: #c0392b; transform: translateY(-1px); }
+
+        .btn-hint { background-color: #9b59b6; color: white; }
+        .btn-hint:hover { background-color: #8e44ad; transform: translateY(-1px); }
+        
+        .btn-reset { background-color: #7f8c8d; color: white; }
+        .btn-reset:hover { background-color: #616a6f; transform: translateY(-1px); }
+
+        .btn-levels { background-color: #34495e; color: white; }
+        .btn-levels:hover { background-color: #2c3e50; transform: translateY(-1px); }
+        
+        /* Message Box */
+        #messageBox {
+            min-height: 40px;
+            line-height: 40px;
+            font-weight: 600;
+            margin-bottom: 15px;
+            border-radius: 5px;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        .msg-correct { background-color: var(--mathly-green); color: white; }
+        .msg-incorrect { background-color: var(--mathly-red); color: white; }
+
+        /* Levels Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.6);
+            backdrop-filter: blur(3px);
+            -webkit-backdrop-filter: blur(3px);
+            padding-top: 60px;
+        }
+
+        .modal-content {
+            background-color: var(--card-bg-light);
+            margin: 5% auto;
+            padding: 20px;
+            border-radius: 15px;
+            width: 90%;
+            max-width: 400px;
+            position: relative;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
+            text-align: left;
+        }
+
+        .close-btn {
+            color: var(--mathly-grey-dark);
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .close-btn:hover,
+        .close-btn:focus {
+            color: var(--mathly-red);
+            text-decoration: none;
+            cursor: pointer;
+        }
+        
+        .level-selection button {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 8px;
+            border: 2px solid var(--mathly-blue);
+            background-color: var(--mathly-grey-light);
+            font-size: 1.1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s, border-color 0.2s;
+        }
+
+        .level-selection button:hover:not(:disabled) {
+            background-color: var(--mathly-blue);
+            color: white;
+        }
+        
+        .level-selection button:disabled {
+            background-color: var(--mathly-grey-dark);
+            border-color: var(--mathly-grey-dark);
+            color: var(--mathly-grey-light);
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .stars {
+            color: var(--mathly-yellow);
+            font-size: 1.2em;
+        }
+        
+        /* Responsiveness for controls */
+        @media (max-width: 380px) {
+            .controls-row {
+                flex-direction: column;
+            }
+            .btn {
+                width: 100%;
+            }
+            .game-container {
+                padding: 10px 5px;
+            }
+        }
+        
+        /* Hint Display */
+        #hintBox {
+            background-color: var(--mathly-yellow);
+            color: var(--mathly-grey-dark);
+            padding: 10px;
+            margin-top: 10px;
+            border-radius: 5px;
+            font-size: 0.9em;
+            font-style: italic;
+            display: none;
+            text-align: center;
+            box-shadow: var(--shadow-light);
+        }
+
+        /* Star Rating */
+        .star-rating {
+            font-size: 1.5em;
+            color: var(--mathly-yellow);
+        }
+        
+        .star-rating .unfilled {
+            color: var(--mathly-grey-dark);
+            opacity: 0.3;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="mathly-bg-symbols"></div>
+
+    <div class="game-container">
+        <header>
+            <h1>AssignmentX Number Game Challenge</h1>
+            <p>B4.1.1.1.3 Identify numbers in different positions around a given number in a number chart</p>
+        </header>
+
+        <div class="star-rating" id="levelStarRating">
+            <span class="star-count" id="currentLevelName">Level 1</span>
+            <span id="starDisplay">⭐⭐⭐</span>
+        </div>
+        
+        <hr>
+
+        <div class="session-selector" style="margin-bottom: 20px;">
+            <label for="sessionTime">Select Session Time:</label>
+            <select id="sessionTime" style="padding: 8px; border-radius: 5px; font-family: 'Inter'; border: 1px solid var(--mathly-blue);">
+                <option value="120" selected>Short (2 Mins)</option>
+                <option value="180">Medium (3 Mins)</option>
+                <option value="300">Long (5 Mins)</option>
+            </select>
+        </div>
+        <div class="stats-grid">
+            <div class="stat-card">Score <span class="stat-value" id="scoreDisplay">0</span></div>
+            <div class="stat-card">Correct <span class="stat-value" id="correctCountDisplay">0</span></div>
+            <div class="stat-card">Time (s) <span class="stat-value" id="timerDisplay">120</span></div>
+        </div>
+
+        <div id="messageBox">Ready to start!</div>
+
+        <div class="game-area">
+            <div id="problemText">Press START to begin your challenge!</div>
+            <input type="number" id="answerInput" placeholder="Your Answer" disabled>
+            <div id="hintBox"></div>
+        </div>
+        
+        <div class="controls-row">
+            <button class="btn btn-start" id="startButton">▶️ START</button>
+            <button class="btn btn-submit" id="submitButton" disabled>✅ SUBMIT</button>
+        </div>
+        
+        <div class="controls-row">
+            <button class="btn btn-pause" id="pauseButton" disabled>⏸️ PAUSE</button>
+            <button class="btn btn-stop" id="stopButton" disabled>⏹️ STOP</button>
+            <button class="btn btn-hint" id="hintButton" disabled>💡 HINT</button>
+        </div>
+        
+        <div class="controls-row">
+            <button class="btn btn-levels" id="levelsButton">📚 LEVELS</button>
+            <button class="btn btn-reset" id="resetScoresButton">🗑️ RESET SCORES</button>
+            <button class="btn btn-mute" id="muteButton">🔇 MUTE</button>
+        </div>
+    </div>
+
+    <div id="levelsModal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn">&times;</span>
+            <h2>📚 Select Level</h2>
+            <div class="level-selection" id="levelSelectionContainer">
+                </div>
+            <p style="font-size: 0.9em; margin-top: 15px; color: var(--mathly-red);">Must earn at least 1 star to unlock the next level.</p>
+        </div>
+    </div>
+
+    <script>
+        // Game Configuration and State
+        
+        // Removed const GAME_TIME = 60; to allow dynamic selection
+        
+        const LEVELS_CONFIG = [
+            { id: 1, name: "Level 1 (Easy)", min: 10000, max: 100000, step: 500, stars: 0, problem_target: 3, correct_needed: [2, 5, 8] },
+            { id: 2, name: "Level 2 (Medium)", min: 1000, max: 10000, step: 100, stars: 0, problem_target: 4, correct_needed: [2, 6, 10] },
+            { id: 3, name: "Level 3 (Hard)", min: 100, max: 1000, step: 10, stars: 0, problem_target: 5, correct_needed: [3, 7, 12] }
+        ];
+
+        let currentLevel = LEVELS_CONFIG[0];
+        let gameState = {
+            score: 0,
+            correctCount: 0,
+            timer: 120, // Initial default timer set to 120
+            isRunning: false,
+            isPaused: false,
+            currentAnswer: null,
+            currentProblem: null,
+            isMuted: false
+        };
+
+        let timerInterval;
+        let starProgress = loadStarProgress();
+
+        // DOM Elements
+        const $ = id => document.getElementById(id);
+        const elements = {
+            scoreDisplay: $('scoreDisplay'),
+            correctCountDisplay: $('correctCountDisplay'),
+            timerDisplay: $('timerDisplay'),
+            problemText: $('problemText'),
+            answerInput: $('answerInput'),
+            messageBox: $('messageBox'),
+            startButton: $('startButton'),
+            submitButton: $('submitButton'),
+            pauseButton: $('pauseButton'),
+            stopButton: $('stopButton'),
+            hintButton: $('hintButton'),
+            levelsButton: $('levelsButton'),
+            resetScoresButton: $('resetScoresButton'),
+            muteButton: $('muteButton'),
+            levelsModal: $('levelsModal'),
+            levelSelectionContainer: $('levelSelectionContainer'),
+            closeModal: document.querySelector('.close-btn'),
+            hintBox: $('hintBox'),
+            starDisplay: $('starDisplay'),
+            currentLevelName: $('currentLevelName'),
+            // NEW ELEMENT
+            sessionTimeSelector: $('sessionTime') 
+        };
+
+        // --- Core Functions ---
+
+        /**
+         * Productive Struggle & Scaffolding
+         * Generates a problem matching the B4.1.1.1.3 Indicator.
+         * The 'target' position (e.g., above, below, right) is used in the problem text.
+         */
+        function generateProblem(level) {
+            const { min, max, step, problem_target } = level;
+            
+            // 1. Generate a valid 'givenNumber' on the chart
+            // Ensure numbers are multiples of 'step'
+            let givenNumber = Math.floor(Math.random() * ((max - min) / step + 1)) * step + min;
+            givenNumber = Math.max(min + step * 2, Math.min(max - step * 2, givenNumber)); // Keep it away from edges for full 3x3 context
+            
+            // 2. Define the chart structure (simulated 3x3 grid around the number)
+            const rowStep = step * problem_target; // Number to add/subtract for numbers in the row above/below
+            
+            // Possible answers and their target positions (relative to givenNumber)
+            const positions = [
+                { answer: givenNumber - rowStep - step, name: "Top-Left" },
+                { answer: givenNumber - rowStep, name: "Directly Above" },
+                { answer: givenNumber - rowStep + step, name: "Top-Right" },
+                { answer: givenNumber - step, name: "Directly Left" },
+                // givenNumber itself is the center
+                { answer: givenNumber + step, name: "Directly Right" },
+                { answer: givenNumber + rowStep - step, name: "Bottom-Left" },
+                { answer: givenNumber + rowStep, name: "Directly Below" },
+                { answer: givenNumber + rowStep + step, name: "Bottom-Right" }
+            ];
+            
+            // 3. Select a random target position
+            const targetPosition = positions[Math.floor(Math.random() * positions.length)];
+            
+            // 4. Create a Ghanaian Context problem
+            const contexts = [
+                `A trader in Accra uses a number chart stepping by **${step.toLocaleString('en-GH')}**. The number **${givenNumber.toLocaleString('en-GH')}** is in the center. What number is **${targetPosition.name}** it?`,
+                `A school in Kumasi is counting by **${step.toLocaleString('en-GH')}** on a big board. If **${givenNumber.toLocaleString('en-GH')}** is the current number, find the number **${targetPosition.name}** on the chart (the chart has ${problem_target} numbers per row).`,
+                `A farmer is tracking his harvest, counting in batches of **${step.toLocaleString('en-GH')}**. His chart shows **${problem_target}** numbers per row. If the central batch is **${givenNumber.toLocaleString('en-GH')}**, what is the batch **${targetPosition.name}**?`
+            ];
+
+            const questionText = contexts[Math.floor(Math.random() * contexts.length)];
+            
+            gameState.currentProblem = {
+                givenNumber: givenNumber,
+                step: step,
+                rowStep: rowStep,
+                targetName: targetPosition.name,
+                question: questionText,
+            };
+            
+            gameState.currentAnswer = targetPosition.answer;
+            elements.problemText.innerHTML = questionText;
+            elements.answerInput.value = '';
+            elements.answerInput.focus();
+            elements.hintBox.style.display = 'none'; // Hide hint for new problem
+        }
+        
+        /**
+         * Scaffolding
+         * Provides a simplified, related example problem.
+         */
+        function showHint() {
+            if (!gameState.isRunning || gameState.isPaused || elements.hintBox.style.display === 'block') return;
+
+            const { givenNumber, step, targetName, rowStep } = gameState.currentProblem;
+
+            // Simplified Example with small numbers but same logic
+            const simpleGiven = 50;
+            const simpleStep = 10;
+            const simpleRowStep = simpleStep * currentLevel.problem_target;
+            
+            let simpleAnswer;
+            // The logic for simpleAnswer must mirror the logic that derived the real answer
+            if (targetName.includes("Above")) {
+                simpleAnswer = targetName.includes("Left") ? simpleGiven - simpleRowStep - simpleStep :
+                               targetName.includes("Right") ? simpleGiven - simpleRowStep + simpleStep :
+                               simpleGiven - simpleRowStep;
+            } else if (targetName.includes("Below")) {
+                simpleAnswer = targetName.includes("Left") ? simpleGiven + simpleRowStep - simpleStep :
+                               targetName.includes("Right") ? simpleGiven + simpleRowStep + simpleStep :
+                               simpleGiven + simpleRowStep;
+            } else if (targetName.includes("Left")) {
+                simpleAnswer = simpleGiven - simpleStep;
+            } else if (targetName.includes("Right")) {
+                simpleAnswer = simpleGiven + simpleStep;
+            } else {
+                simpleAnswer = "Error"; // Should not happen
+            }
+
+            elements.hintBox.innerHTML = `**HINT:** Think of a simple chart that goes up by **${simpleStep}** with **${currentLevel.problem_target}** numbers per row. If the middle number is **${simpleGiven}**, the number **${targetName}** is **${simpleAnswer}**. Use the same pattern for **${givenNumber.toLocaleString('en-GH')}** and a step of **${step.toLocaleString('en-GH')}**.`;
+            elements.hintBox.style.display = 'block';
+        }
+
+        /**
+         * Retrieval Practice & Immediate Feedback
+         * Checks the user's input against the correct answer.
+         */
+        function checkAnswer() {
+            if (!gameState.isRunning || gameState.isPaused) return;
+
+            const userInput = parseInt(elements.answerInput.value.replace(/,/g, ''));
+            
+            if (isNaN(userInput)) {
+                showMessage("Please enter a number!", 'incorrect');
+                return;
+            }
+
+            const isCorrect = userInput === gameState.currentAnswer;
+
+            if (isCorrect) {
+                gameState.score += 10;
+                gameState.correctCount++;
+                showMessage("✅ Correct! Excellent work.", 'correct');
+                playSuccessSound();
+            } else {
+                gameState.score = Math.max(0, gameState.score - 5);
+                showMessage(`❌ Incorrect. The correct answer was ${gameState.currentAnswer.toLocaleString('en-GH')}.`, 'incorrect');
+                playFailureSound();
+            }
+
+            updateDisplay();
+            generateProblem(currentLevel); // Immediately generate next problem
+        }
+
+        function startGame() {
+            if (gameState.isRunning) return;
+
+            // FIX: Read selected time from the dropdown
+            const selectedTime = parseInt(elements.sessionTimeSelector.value);
+            
+            gameState.isRunning = true;
+            gameState.isPaused = false;
+            gameState.timer = selectedTime; // Use selected time
+            gameState.score = 0;
+            gameState.correctCount = 0;
+            
+            // Set initial button states
+            elements.startButton.disabled = true;
+            elements.submitButton.disabled = false;
+            elements.pauseButton.disabled = false;
+            elements.stopButton.disabled = false;
+            elements.answerInput.disabled = false;
+            elements.hintButton.disabled = false;
+
+            // Ensure the pause button is correctly labeled
+            elements.pauseButton.textContent = '⏸️ PAUSE';
+            elements.pauseButton.classList.remove('btn-start');
+            elements.pauseButton.classList.add('btn-pause');
+
+            updateDisplay();
+            generateProblem(currentLevel);
+            startTimer();
+            showMessage("Game Started! Go!", 'correct');
+            // Tone.js
+            if (!gameState.isMuted) startBgMusic();
+        }
+
+        /**
+         * Handles the PAUSE action, changing button to RESUME.
+         */
+        function pauseGame() {
+            if (!gameState.isRunning || gameState.isPaused) return;
+            
+            gameState.isPaused = true;
+            clearInterval(timerInterval);
+            
+            elements.submitButton.disabled = true;
+            elements.answerInput.disabled = true;
+            
+            // Change button appearance to RESUME
+            elements.pauseButton.textContent = '▶️ RESUME';
+            elements.pauseButton.classList.remove('btn-pause');
+            elements.pauseButton.classList.add('btn-start');
+            
+            showMessage("Game Paused.", 'incorrect');
+            pauseBgMusic();
+        }
+
+        /**
+         * Handles the RESUME action, changing button back to PAUSE.
+         */
+        function resumeGame() {
+            if (!gameState.isRunning || !gameState.isPaused) return;
+
+            gameState.isPaused = false;
+            startTimer();
+            
+            elements.submitButton.disabled = false;
+            elements.answerInput.disabled = false;
+            
+            // Change button appearance back to PAUSE
+            elements.pauseButton.textContent = '⏸️ PAUSE';
+            elements.pauseButton.classList.remove('btn-start');
+            elements.pauseButton.classList.add('btn-pause');
+            
+            showMessage("Game Resumed. Focus!", 'correct');
+            if (!gameState.isMuted) startBgMusic();
+        }
+        
+        function stopGame() {
+            if (!gameState.isRunning) return;
+            
+            clearInterval(timerInterval);
+            gameState.isRunning = false;
+            gameState.isPaused = false;
+            
+            // Reset button states
+            elements.startButton.disabled = false;
+            elements.submitButton.disabled = true;
+            elements.pauseButton.disabled = true;
+            elements.stopButton.disabled = true;
+            elements.answerInput.disabled = true;
+            elements.hintButton.disabled = true;
+            
+            // Reset pause button text
+            elements.pauseButton.textContent = '⏸️ PAUSE';
+            elements.pauseButton.classList.remove('btn-start');
+            elements.pauseButton.classList.add('btn-pause');
+
+            elements.problemText.innerHTML = "Press START to begin your challenge!";
+            elements.answerInput.value = '';
+            
+            // Calculate Stars
+            const starsEarned = calculateStars(currentLevel.id, gameState.correctCount);
+            
+            // Update Local Storage
+            updateStarProgress(currentLevel.id, starsEarned);
+            
+            // Display Results (Immediate Feedback)
+            const resultMessage = `Time's Up! You scored ${gameState.score}. You got ${gameState.correctCount} correct and earned ${'⭐'.repeat(starsEarned)}!`;
+            showMessage(resultMessage, starsEarned > 0 ? 'correct' : 'incorrect');
+            
+            // Update UI after game end
+            updateLevelDisplay();
+            
+            // Tone.js
+            stopBgMusic();
+        }
+
+        function startTimer() {
+            timerInterval = setInterval(() => {
+                if (gameState.isRunning && !gameState.isPaused) {
+                    gameState.timer--;
+                    elements.timerDisplay.textContent = gameState.timer;
+
+                    if (gameState.timer <= 0) {
+                        stopGame();
+                    }
+                }
+            }, 1000);
+        }
+
+        function updateDisplay() {
+            elements.scoreDisplay.textContent = gameState.score;
+            elements.correctCountDisplay.textContent = gameState.correctCount;
+            elements.timerDisplay.textContent = gameState.timer;
+        }
+
+        function showMessage(msg, type) {
+            elements.messageBox.textContent = msg;
+            elements.messageBox.className = type === 'correct' ? 'msg-correct' : type === 'incorrect' ? 'msg-incorrect' : '';
+        }
+
+        // --- Persistence & Level Management ---
+        
+        function loadStarProgress() {
+            try {
+                const storedProgress = localStorage.getItem('assignmentXStarProgress');
+                return storedProgress ? JSON.parse(storedProgress) : {};
+            } catch (e) {
+                console.error("Could not load star progress from LocalStorage.", e);
+                return {};
+            }
+        }
+        
+        function updateStarProgress(levelId, starsEarned) {
+            starProgress[levelId] = Math.max(starProgress[levelId] || 0, starsEarned);
+            try {
+                localStorage.setItem('assignmentXStarProgress', JSON.stringify(starProgress));
+            } catch (e) {
+                console.error("Could not save star progress to LocalStorage.", e);
+            }
+            updateLevelDisplay(); // Refresh UI
+        }
+
+        function calculateStars(levelId, correctCount) {
+            const levelConfig = LEVELS_CONFIG.find(l => l.id === levelId);
+            if (!levelConfig) return 0;
+            
+            const [oneStar, twoStars, threeStars] = levelConfig.correct_needed;
+            
+            if (correctCount >= threeStars) return 3;
+            if (correctCount >= twoStars) return 2;
+            if (correctCount >= oneStar) return 1;
+            return 0;
+        }
+        
+        function resetScores() {
+            if (confirm("Are you sure you want to reset ALL scores and lock all levels (except Level 1)? This cannot be undone.")) {
+                localStorage.removeItem('assignmentXStarProgress');
+                starProgress = loadStarProgress();
+                LEVELS_CONFIG.forEach(l => l.stars = 0);
+                showMessage("All scores have been reset.", 'incorrect');
+                loadLevel(LEVELS_CONFIG[0]); // Go back to Level 1
+            }
+        }
+
+        function loadLevel(level) {
+            currentLevel = level;
+            // Ensure any ongoing game is stopped before changing level
+            if(gameState.isRunning) stopGame(); 
+            
+            // Reset game state for new level
+            // Timer value is now controlled by the sessionTimeSelector on Start
+            gameState.timer = parseInt(elements.sessionTimeSelector.value);
+            gameState.score = 0;
+            gameState.correctCount = 0;
+
+            updateLevelDisplay();
+            updateDisplay();
+            elements.problemText.innerHTML = `Level ${currentLevel.id} Selected. Press START to begin!`;
+            showMessage(`Loaded ${currentLevel.name}. Ready!`, 'correct');
+            // Close modal if open
+            elements.levelsModal.style.display = 'none';
+        }
+
+        function updateLevelDisplay() {
+            elements.currentLevelName.textContent = currentLevel.name.split(' ')[0] + ' ' + currentLevel.id;
+            const currentStars = starProgress[currentLevel.id] || 0;
+            let starHTML = '';
+            for (let i = 1; i <= 3; i++) {
+                starHTML += `<span class="${i <= currentStars ? '' : 'unfilled'}">⭐</span>`;
+            }
+            elements.starDisplay.innerHTML = starHTML;
+            
+            // Re-render the modal content to reflect updated star progress
+            renderLevelsModal();
+        }
+
+        function renderLevelsModal() {
+            elements.levelSelectionContainer.innerHTML = '';
+            LEVELS_CONFIG.forEach(level => {
+                const levelId = level.id;
+                const stars = starProgress[levelId] || 0;
+                const isLocked = levelId > 1 && (starProgress[levelId - 1] || 0) < 1;
+                
+                let starHTML = '';
+                for (let i = 1; i <= 3; i++) {
+                    starHTML += `<span class="${i <= stars ? '' : 'unfilled'}">⭐</span>`;
+                }
+                
+                const button = document.createElement('button');
+                button.textContent = level.name;
+                button.dataset.levelId = levelId;
+                button.disabled = isLocked;
+                button.onclick = () => loadLevel(level);
+
+                const starsSpan = document.createElement('span');
+                starsSpan.className = 'stars';
+                starsSpan.innerHTML = isLocked ? '🔒' : starHTML;
+                
+                button.appendChild(starsSpan);
+                elements.levelSelectionContainer.appendChild(button);
+            });
+        }
+        
+        // --- Tone.js Audio Integration ---
+        
+        // Setup Mute button state
+        function setupMuteButton() {
+            elements.muteButton.textContent = gameState.isMuted ? '🔊 UNMUTE' : '🔇 MUTE';
+        }
+        
+        elements.muteButton.addEventListener('click', () => {
+            gameState.isMuted = !gameState.isMuted;
+            setupMuteButton();
+            if (gameState.isMuted) {
+                stopBgMusic();
+            } else if (gameState.isRunning && !gameState.isPaused) {
+                startBgMusic();
+            }
+        });
+
+        // 1. Success/Failure Sound Effects (Immediate Feedback)
+        const synthSuccess = new Tone.PolySynth(Tone.AMSynth).toDestination();
+        const synthFailure = new Tone.NoiseSynth({
+            noise: { type: 'pink' },
+            envelope: { attack: 0.005, decay: 0.2, sustain: 0, release: 0.3 }
+        }).toDestination();
+
+        function playSuccessSound() {
+            if (gameState.isMuted) return;
+            // Short, clean, ascending tone
+            synthSuccess.triggerAttackRelease(['C5', 'E5', 'G5'], '8n', Tone.now());
+        }
+
+        function playFailureSound() {
+            if (gameState.isMuted) return;
+            // Low, noisy tone for quick feedback
+            synthFailure.triggerAttackRelease('8n');
+        }
+
+        // 2. Background Music (Simulated Afrobeats Loop)
+        const loopDuration = 8; // Measures/Bar length in 4/4
+        let bgLoop;
+
+        // Core instruments for an Afrobeats feel
+        const kickDrum = new Tone.MembraneSynth({ octaves: 10, envelope: { attack: 0.001, decay: 0.4, sustain: 0.01, release: 0.7 } }).toDestination();
+        const marimba = new Tone.PolySynth(Tone.DuoSynth, {
+            vibratoAmount: 0.5,
+            vibratoRate: 5,
+            harmonicity: 1.5,
+            voice0: { volume: -10, portamento: 0, oscillator: { type: "sine" }, filterEnvelope: { attack: 0.01, decay: 0.1, sustain: 0 } },
+            voice1: { volume: -10, portamento: 0, oscillator: { type: "sine" }, filterEnvelope: { attack: 0.01, decay: 0.1, sustain: 0 } }
+        }).toDestination();
+        const filter = new Tone.Filter(2000, "lowpass").toDestination();
+        marimba.connect(filter);
+        
+        const loopPatterns = {
+            bass: [
+                ["0:0:0", "C2"], ["0:1:2", "C2"], ["0:2:0", "G2"], ["0:3:2", "A#2"],
+                ["1:0:0", "F2"], ["1:1:2", "F2"], ["1:2:0", "G2"], ["1:3:2", "C2"],
+            ],
+            perc: [
+                ["0:0:0", "C1"], ["0:0:2", "C1"], ["0:1:0", "C1"], ["0:1:2", "C1"],
+                ["0:2:0", "C1"], ["0:2:2", "C1"], ["0:3:0", "C1"], ["0:3:2", "C1"],
+            ],
+            melody: [
+                ["0:0:0", "E4"], ["0:0:2", "F4"], ["0:1:0", "G4"], ["0:1:2", "F4"], 
+                ["0:2:0", "E4"], ["0:2:2", "D4"], ["0:3:0", "C4"], ["0:3:2", "C4"], 
+            ]
+        };
+
+        function createBgMusicLoop() {
+            Tone.Transport.bpm.value = 118; // Energetic tempo
+            Tone.Transport.loop = true;
+            Tone.Transport.loopEnd = loopDuration;
+
+            const kickPart = new Tone.Part((time, note) => {
+                kickDrum.triggerAttackRelease(note, "8n", time, 1);
+            }, loopPatterns.perc).start(0);
+
+            const marimbaPart = new Tone.Part((time, note) => {
+                marimba.triggerAttackRelease(note, "4n", time);
+            }, loopPatterns.melody).start(0);
+            
+            // Combine parts into a single sequence for easy control
+            bgLoop = [kickPart, marimbaPart];
+        }
+
+        function startBgMusic() {
+            if (Tone.Transport.state !== 'started') {
+                Tone.start();
+                createBgMusicLoop();
+                Tone.Transport.start();
+            }
+        }
+
+        function pauseBgMusic() {
+            if (Tone.Transport.state === 'started') {
+                Tone.Transport.pause();
+            }
+        }
+
+        function stopBgMusic() {
+            if (Tone.Transport.state === 'started') {
+                Tone.Transport.stop();
+                if (bgLoop) {
+                    bgLoop.forEach(part => part.dispose());
+                    bgLoop = null;
+                }
+            }
+        }
+
+        // --- Event Listeners & Initialization ---
+
+        elements.startButton.addEventListener('click', startGame);
+
+        elements.submitButton.addEventListener('click', checkAnswer);
+        
+        // FIX: Toggle logic for the Pause/Resume button
+        elements.pauseButton.addEventListener('click', () => {
+            if (gameState.isRunning) {
+                if (gameState.isPaused) {
+                    resumeGame();
+                } else {
+                    pauseGame();
+                }
+            }
+        });
+        
+        elements.stopButton.addEventListener('click', stopGame);
+        elements.hintButton.addEventListener('click', showHint);
+        elements.resetScoresButton.addEventListener('click', resetScores);
+        
+        // Handle ENTER key press for submission (Cognitive Load Reduction)
+        elements.answerInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                checkAnswer();
+            }
+        });
+        
+        // Modal Handlers
+        elements.levelsButton.addEventListener('click', () => {
+            renderLevelsModal();
+            elements.levelsModal.style.display = 'block';
+        });
+
+        elements.closeModal.addEventListener('click', () => {
+            elements.levelsModal.style.display = 'none';
+        });
+
+        window.addEventListener('click', (event) => {
+            if (event.target === elements.levelsModal) {
+                elements.levelsModal.style.display = 'none';
+            }
+        });
+
+        // Initialize
+        (function init() {
+            loadStarProgress(); // Load persistence
+            loadLevel(currentLevel); // Load default level (Level 1)
+            setupMuteButton(); // Set initial mute state button text
+        })();
+    </script>
+</body>
+</html>
